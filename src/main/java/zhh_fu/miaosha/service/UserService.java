@@ -48,10 +48,12 @@ public class UserService {
         if (!caclPass.equals(dbPass)){
             throw new GlobalException(CodeMsg.PASSWORD_ERROR);
         }
-        addCookie(response, user);
+        String token = UUIDUtil.uuid();
+        addCookie(response,token, user);
         return true;
     }
 
+    //通过token获取用户信息
     public User getByToken(HttpServletResponse response, String token) {
         if (StringUtils.isEmpty(token)){
             return null;
@@ -59,17 +61,16 @@ public class UserService {
         User user = jedisAdapter.get(UserKey.token,token,User.class);
         //延长有效期
         if (user != null){
-            addCookie(response, user);
+            addCookie(response, token, user);
         }
         return user;
     }
 
     //回写cookie
-    private void addCookie(HttpServletResponse response, User user){
+    private void addCookie(HttpServletResponse response, String token, User user){
         //生成cookie
         //标识一下这个tokin对应哪一个用户
         //生成cookie的key和value
-        String token = UUIDUtil.uuid();
         jedisAdapter.set(UserKey.token,token,user);
         Cookie cookie = new Cookie(COOKIE_NAME_TOKEN,token);
         //设置成和session一样的有效期

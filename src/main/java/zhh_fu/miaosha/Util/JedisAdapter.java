@@ -151,9 +151,9 @@ public class JedisAdapter implements InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxIdle(10);
-        poolConfig.setMaxTotal(10);
-        poolConfig.setMaxWaitMillis(3000);
+        poolConfig.setMaxIdle(500);
+        poolConfig.setMaxTotal(1000);
+        poolConfig.setMaxWaitMillis(10000);
         pool = new JedisPool("redis://192.168.132.129:6379");
     }
 
