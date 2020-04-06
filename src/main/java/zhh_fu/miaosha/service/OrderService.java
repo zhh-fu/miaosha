@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import zhh_fu.miaosha.DAO.OrderDAO;
+import zhh_fu.miaosha.Util.JedisAdapter;
+import zhh_fu.miaosha.Util.OrderKey;
 import zhh_fu.miaosha.pojo.MiaoshaOrder;
 import zhh_fu.miaosha.pojo.OrderInfo;
 import zhh_fu.miaosha.pojo.User;
@@ -16,8 +18,12 @@ public class OrderService {
     @Autowired
     OrderDAO orderDAO;
 
+    @Autowired
+    JedisAdapter jedisAdapter;
+
     public MiaoshaOrder getMiaoshaOrderByUserIdGoodsId(long userId, long goodsId) {
-        return orderDAO.getMiaoshaOrderByUserIdGoodsId(userId, goodsId);
+        return jedisAdapter.get(OrderKey.getMiaoshaOrderByUidGid,""+userId+"-"+goodsId,MiaoshaOrder.class);
+        //return orderDAO.getMiaoshaOrderByUserIdGoodsId(userId, goodsId);
     }
 
     @Transactional
@@ -39,6 +45,13 @@ public class OrderService {
         miaoshaOrder.setUserId(user.getId());
         orderDAO.insertMiaoshaOrder(miaoshaOrder);
 
+        //写入缓存
+        jedisAdapter.set(OrderKey.getMiaoshaOrderByUidGid,""+user.getId()+"-"+goodsVo.getId(),miaoshaOrder);
+
         return orderInfo;
+    }
+
+    public OrderInfo getOrderById(long orderId) {
+        return orderDAO.getOrderById(orderId);
     }
 }

@@ -27,7 +27,35 @@ public class UserService {
     public static final String COOKIE_NAME_TOKEN = "token";
 
     public User getById(long id){
-        return userDAO.getById(id);
+        User user = jedisAdapter.get(UserKey.getById,""+id,User.class);
+        if (user != null){
+            return user;
+        }
+
+        user = userDAO.getById(id);
+        if (user != null){
+            jedisAdapter.set(UserKey.getById,""+id,user);
+        }
+        return user;
+    }
+
+    public boolean updatePassWord(String token, long id, String newPassWord){
+        User user = getById(id);
+        if (user == null){
+            throw new GlobalException(CodeMsg.MOBILE_NOT_EXISTS);
+        }
+        //更新数据库
+        User toBeUpdate = new User();
+        toBeUpdate.setId(id);
+        toBeUpdate.setPassword(MD5Util.formPassToDBPass(newPassWord,user.getSalt()));
+        userDAO.updatePassWord(toBeUpdate);
+        //处理缓存
+        //删除该用户之前的缓存
+        jedisAdapter.delete(UserKey.getById, ""+id);
+        user.setPassword(toBeUpdate.getPassword());
+        //更新token缓存
+        jedisAdapter.set(UserKey.token, token, user);
+        return true;
     }
 
     public boolean login(HttpServletResponse response, LoginVo loginVo) {

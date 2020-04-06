@@ -5,19 +5,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import zhh_fu.miaosha.pojo.MiaoshaOrder;
 import zhh_fu.miaosha.pojo.OrderInfo;
 import zhh_fu.miaosha.pojo.User;
 import zhh_fu.miaosha.result.CodeMsg;
+import zhh_fu.miaosha.result.Result;
 import zhh_fu.miaosha.service.GoodsService;
 import zhh_fu.miaosha.service.MiaoshaService;
 import zhh_fu.miaosha.service.OrderService;
 import zhh_fu.miaosha.service.UserService;
 import zhh_fu.miaosha.vo.GoodsVo;
 
+import javax.xml.ws.Response;
 import java.util.List;
 
 @Controller
@@ -37,32 +37,28 @@ public class MiaoshaController {
     @Autowired
     MiaoshaService miaoshaService;
 
-    @RequestMapping("/do_miaosha")
-    public String toLogin(Model model, User user, @RequestParam("goodsId") long goodsId){
-        //未登录直接返回使其登陆
-        if (user == null) return "login";
-        model.addAttribute("user",user);
-
-        GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
+    @RequestMapping(value="/do_miaosha", method=RequestMethod.POST)
+    @ResponseBody
+    public Result<OrderInfo> miaosha(Model model,User user,
+                                     @RequestParam("goodsId")long goodsId) {
+        model.addAttribute("user", user);
+        if(user == null) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
         //判断库存
-        int stockCount = goods.getStockCount();
-        if (stockCount <= 0){
-            model.addAttribute("errmsg",CodeMsg.MIAOSHA_OVER.getMsg());
-            return "miaosha_fail";
+        GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
+        int stock = goods.getStockCount();
+        if(stock <= 0) {
+            return Result.error(CodeMsg.MIAOSHA_OVER);
         }
-
-        //判断用户是否重复秒杀
+        //判断是否已经秒杀到了
         MiaoshaOrder order = orderService.getMiaoshaOrderByUserIdGoodsId(user.getId(), goodsId);
-        if(order != null){
-            model.addAttribute("errmsg",CodeMsg.MIAOSHA_REPEAT.getMsg());
-            return "miaosha_fail";
+        if(order != null) {
+            return Result.error(CodeMsg.MIAOSHA_REPEAT);
         }
-
-        //可以正常秒杀，减库存，下订单，写入秒杀订单
-        OrderInfo orderInfo = miaoshaService.miaosha(user,goods);
-        model.addAttribute("orderInfo",orderInfo);
-        model.addAttribute("goods",goods);
-        return "order_detail";
+        //减库存 下订单 写入秒杀订单
+        OrderInfo orderInfo = miaoshaService.miaosha(user, goods);
+        return Result.success(orderInfo);
     }
 
 }

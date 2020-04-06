@@ -117,6 +117,22 @@ public class JedisAdapter implements InitializingBean {
         }
     }
 
+    public boolean delete(KeyPrefix prefix, String key) {
+        Jedis jedis = null;
+        try{
+            jedis = pool.getResource();
+            String realKey = prefix.getPrefix() + key;
+            return jedis.del(realKey) > 0;
+        }catch (Exception ex){
+            logger.error("发生异常" + ex.getMessage());
+            return false;
+        }finally {
+            if (jedis != null){
+                jedis.close();
+            }
+        }
+    }
+
 
     private <T> String beanToString(T value) {
         if (value == null) return null;
@@ -377,4 +393,6 @@ public class JedisAdapter implements InitializingBean {
         }
         return null;
     }
+
+
 }
