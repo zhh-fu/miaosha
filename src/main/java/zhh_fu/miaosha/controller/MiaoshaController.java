@@ -7,8 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import zhh_fu.miaosha.Util.GoodsKey;
-import zhh_fu.miaosha.Util.JedisAdapter;
+import zhh_fu.miaosha.Util.*;
 import zhh_fu.miaosha.pojo.MiaoshaOrder;
 import zhh_fu.miaosha.pojo.OrderInfo;
 import zhh_fu.miaosha.pojo.User;
@@ -22,7 +21,11 @@ import zhh_fu.miaosha.service.OrderService;
 import zhh_fu.miaosha.service.UserService;
 import zhh_fu.miaosha.vo.GoodsVo;
 
+import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletResponse;
 import javax.xml.ws.Response;
+import java.awt.image.BufferedImage;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,13 +56,20 @@ public class MiaoshaController implements InitializingBean {
     //做一个标记
     private Map<Long, Boolean> localOverMap = new HashMap<Long, Boolean>();
 
-    @RequestMapping(value="/do_miaosha", method=RequestMethod.POST)
+    @RequestMapping(value="/{path}/do_miaosha", method=RequestMethod.POST)
     @ResponseBody
     public Result<Integer> miaosha(Model model,User user,
-                                     @RequestParam("goodsId")long goodsId) {
+                                   @RequestParam("goodsId") long goodsId,
+                                   @PathVariable("path") String path) {
         model.addAttribute("user", user);
         if(user == null) {
             return Result.error(CodeMsg.SESSION_ERROR);
+        }
+
+        //验证path
+        boolean check = miaoshaService.checkPath(user,goodsId,path);
+        if (!check){
+            return Result.error(CodeMsg.REQUEST_ILLEGAL);
         }
 
         //内存标记，减少redis访问
@@ -113,7 +123,7 @@ public class MiaoshaController implements InitializingBean {
     @RequestMapping(value="/result", method=RequestMethod.GET)
     @ResponseBody
     public Result<Long> miaoshaResult(Model model,User user,
-                                   @RequestParam("goodsId")long goodsId) {
+                                   @RequestParam("goodsId") long goodsId) {
         model.addAttribute("user", user);
         if (user == null) {
             return Result.error(CodeMsg.SESSION_ERROR);
@@ -134,6 +144,47 @@ public class MiaoshaController implements InitializingBean {
             //存放到redis中
             jedisAdapter.set(GoodsKey.getMiaoshaGoodsStock, ""+goodsVo.getId(),goodsVo.getStockCount());
             localOverMap.put(goodsVo.getId(),false);
+        }
+    }
+
+    @RequestMapping(value="/path", method=RequestMethod.GET)
+    @ResponseBody
+    public Result<String> getMiaoshaPath(Model model,User user,
+                                   @RequestParam("goodsId") long goodsId,
+                                   @RequestParam("verifyCode") int verifyCode) {
+        model.addAttribute("user", user);
+        if (user == null) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
+
+        //检查验证码
+        boolean check = miaoshaService.checkVerifyCode(user,goodsId,verifyCode);
+        if (!check){
+            return Result.error(CodeMsg.REQUEST_ILLEGAL);
+        }
+        String path = miaoshaService.createMiaoshaPath(user,goodsId);
+        return Result.success(path);
+    }
+
+    @RequestMapping(value="/verifyCode", method=RequestMethod.GET)
+    @ResponseBody
+    public Result<String> getMiaoshaVerifyCode(HttpServletResponse response, Model model, User user,
+                                               @RequestParam("goodsId") long goodsId) {
+
+        if (user == null) {
+            return Result.error(CodeMsg.SESSION_ERROR);
+        }
+
+        BufferedImage image = miaoshaService.createVerifyCode(user,goodsId);
+        try{
+            OutputStream out = response.getOutputStream();
+            ImageIO.write(image,"JPEG",out);
+            out.flush();
+            out.close();
+            return null;
+        } catch (Exception ex){
+            ex.printStackTrace();
+            return Result.error(CodeMsg.MIAOSHA_FAIL);
         }
     }
 }

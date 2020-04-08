@@ -69,10 +69,10 @@ public class JedisAdapter implements InitializingBean {
     public <T> boolean exists(KeyPrefix prefix, String key){
         Jedis jedis = null;
         try{
-            jedis = pool.getResource();
-            String realKey = prefix.getPrefix() + key;
-            jedis.exists(realKey);
-            return true;
+            jedis =  pool.getResource();
+            //生成真正的key
+            String realKey  = prefix.getPrefix() + key;
+            return  jedis.exists(realKey);
         }catch (Exception ex){
             logger.error("发生异常" + ex.getMessage());
             return false;
