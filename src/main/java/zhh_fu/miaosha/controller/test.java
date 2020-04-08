@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import zhh_fu.miaosha.Util.JedisAdapter;
 import zhh_fu.miaosha.Util.UserKey;
 import zhh_fu.miaosha.pojo.User;
+import zhh_fu.miaosha.rabbitmq.MQSender;
 import zhh_fu.miaosha.result.CodeMsg;
 import zhh_fu.miaosha.result.Result;
 import zhh_fu.miaosha.service.UserService;
@@ -20,6 +21,17 @@ public class test {
 
     @Autowired
     JedisAdapter jedisAdapter;
+
+    @Autowired
+    MQSender mqSender;
+
+    /*
+    @RequestMapping("/mq")
+    @ResponseBody
+    public Result<String> mq(){
+        mqSender.sent("hello,zhegeshijie");
+        return Result.success("hello world");
+    }*/
 
     @RequestMapping("/test")
     @ResponseBody

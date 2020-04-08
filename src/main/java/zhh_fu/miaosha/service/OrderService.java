@@ -38,15 +38,17 @@ public class OrderService {
         orderInfo.setOrderChannel(1);
         orderInfo.setStatus(0);
         orderInfo.setUserId(user.getId());
-        long orderId = orderDAO.insert(orderInfo);
+        orderDAO.insert(orderInfo);
+
         MiaoshaOrder miaoshaOrder = new MiaoshaOrder();
-        miaoshaOrder.setOrderId(orderId);
+        miaoshaOrder.setOrderId(orderInfo.getId());
         miaoshaOrder.setGoodsId(goodsVo.getId());
         miaoshaOrder.setUserId(user.getId());
         orderDAO.insertMiaoshaOrder(miaoshaOrder);
 
         //写入缓存
-        jedisAdapter.set(OrderKey.getMiaoshaOrderByUidGid,""+user.getId()+"-"+goodsVo.getId(),miaoshaOrder);
+        jedisAdapter.set(OrderKey.getMiaoshaOrderByUidGid,
+                ""+user.getId()+"-"+goodsVo.getId(),miaoshaOrder);
 
         return orderInfo;
     }

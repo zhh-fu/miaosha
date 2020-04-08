@@ -22,11 +22,11 @@ public class GoodsService {
         return goodsDAO.getGoodsVoByGoodsId(goodsId);
     }
 
-    public void reduceStock(GoodsVo goodsVo) {
+    public boolean reduceStock(GoodsVo goodsVo) {
         MiaoshaGoods goods = new MiaoshaGoods();
         goods.setGoodsId(goodsVo.getId());
         //此处在sql语句中执行完成
         //goods.setStockCount(goodsVo.getStockCount() - 1);
-        goodsDAO.reduceStock(goods);
+        return goodsDAO.reduceStock(goods) > 0;
     }
 }
