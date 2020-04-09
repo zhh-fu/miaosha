@@ -8,8 +8,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import zhh_fu.miaosha.Util.*;
+import zhh_fu.miaosha.access.AccessLimit;
 import zhh_fu.miaosha.pojo.MiaoshaOrder;
-import zhh_fu.miaosha.pojo.OrderInfo;
 import zhh_fu.miaosha.pojo.User;
 import zhh_fu.miaosha.rabbitmq.MQSender;
 import zhh_fu.miaosha.rabbitmq.MiaoshaMessage;
@@ -22,8 +22,8 @@ import zhh_fu.miaosha.service.UserService;
 import zhh_fu.miaosha.vo.GoodsVo;
 
 import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.ws.Response;
 import java.awt.image.BufferedImage;
 import java.io.OutputStream;
 import java.util.HashMap;
@@ -147,12 +147,14 @@ public class MiaoshaController implements InitializingBean {
         }
     }
 
+    @AccessLimit(seconds = 5, maxCount = 5, needLogin = true)
     @RequestMapping(value="/path", method=RequestMethod.GET)
     @ResponseBody
-    public Result<String> getMiaoshaPath(Model model,User user,
+    public Result<String> getMiaoshaPath(User user,
+                                   HttpServletRequest request,
                                    @RequestParam("goodsId") long goodsId,
                                    @RequestParam("verifyCode") int verifyCode) {
-        model.addAttribute("user", user);
+
         if (user == null) {
             return Result.error(CodeMsg.SESSION_ERROR);
         }
